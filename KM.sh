@@ -1,16 +1,21 @@
 #! /bin/bash
 
-networkSize=20000
+# Network input
+networkSize=$1
 meanDegree=10
-SE=$1       #0.11
+
+# Rate input
+SE=$2       #0.11
 E_AI=0.39
 pA=0.36
 IQI=0.33
 AR=0.11
 QICR=0.08
-XQX=$2      #0.09
+XQX=$3      #0.09
 tau=14
-coreNum=$3
+
+# Random seed and core num input
+coreNum=$4
 
 name=N${networkSize}M${meanDegree}SE${SE}XQX${XQX}C${coreNum}
 

@@ -18,7 +18,8 @@ int main(int argc, char* argv[]) {
         double QI_CR = std::stod(argv[8]);
         double X_QX = std::stod(argv[9]);
         double tau = std::stod(argv[10]);
-        int coreNum = std::stoi(argv[11]);
+        const double initialTemperature = std::stod(argv[11]);
+        const unsigned maxEnsemble = std::stoul(arvg[12]);
     */
     //* Base directory data will be saved
     const std::string dataDirectory = "../data/KM/";
@@ -39,13 +40,11 @@ int main(int argc, char* argv[]) {
     initialRates[5] = std::stod(argv[8]);
     initialRates[6] = std::stod(argv[9]);
     initialRates[7] = std::stod(argv[10]);
-
-    const double initialTemperature = 100;
-    const unsigned maxEnsemble = 10;
-    const double deltaT = 1e-1;
-
+    const double initialTemperature = std::stod(argv[11]);
+    const unsigned maxEnsemble = std::stoul(argv[12]);
 
     //* Generate SA_KM model
+    const double deltaT = 1e-1;
     SA_KM model(networkSize, meanDegree, initialRates, initialTemperature);
 
     //* Run and save
