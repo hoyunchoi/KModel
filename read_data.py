@@ -35,7 +35,7 @@ def real_confirmed(t=209):
     return readCSV("../data/COVID/realData/confirmed_{:d}.txt".format(t))
 
 def real_Rt(t=342):
-    return readCSV("Rt_{:d}.txt".format(t))
+    return readCSV("../data/COVID/realData/Rt_{:d}.txt".format(t))
 
 def fig4():
     intToState = {0: "t", 1:"S", 2:"QS", 3:"E", 4:"QE", 5:"A", 6:"QA", 7:"I", 8:"QI", 9:"R", 10:"QR", 11:"CR"}
@@ -45,6 +45,19 @@ def fig4():
         data[intToState[index]] = value[::100]
     return data
 
+def getMinimumEnergy(networkSize):
+    minimum_energy = 1e6
+    minimum_line = ""
+    with open("energyList.txt") as file:
+        for line in file.readlines():
+            if "{:.1e}".format(networkSize) in line:
+                energy = float(line[line.find(": ") + 2: ])
+                if energy < minimum_energy:
+                    minimum_energy = energy
+                    minimum_line = line
+    return minimum_line
 
 if __name__ == "__main__":
     print("This is a moduel read_data.py")
+    line = getMinimumEnergy(160000)
+    print(line)

@@ -2,7 +2,7 @@
 
 networkSize=$1
 SE=$2   #0.11
-XQX=$3  #0.99
+XQX=$3  #0.09
 machine=$4
 coreNum=$5
 

@@ -53,11 +53,13 @@ int main(int argc, char* argv[]) {
     const bool finished = model.sync_run(deltaT, maxDate);
     if (finished){
         std::cout << "Successfully finished.\n";
+        std::ofstream energyFile("energyList.txt", std::ios_base::app);
+        energyFile << networkDirectory << rateFileName << ": " << model.getEnergy(realConfirmed) << "\n";
+        model.save(dataDirectory + networkDirectory + rateFileName);
     }
     else{
         std::cout << "Simulated finished before reaching current time.\n";
     }
-    model.save(dataDirectory + networkDirectory + rateFileName);
     //*----------------------------------------------------------------------------------
     std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
     std::ofstream timeLog("time.log", std::ios_base::app);

@@ -19,7 +19,7 @@ coreNum=$4
 
 name=N${networkSize}M${meanDegree}SE${SE}XQX${XQX}C${coreNum}
 
-g++ -O3 -march=native -flto -std=c++17 -o bin/${name}.out main-KM.cpp
+g++ -O3 -march=native -flto -std=c++17 -o ./bin/${name}.out main-KM.cpp
 ./bin/${name}.out ${networkSize} ${meanDegree} ${SE} ${E_AI} ${pA} ${IQI} ${AR} ${QICR} ${XQX} ${tau} ${coreNum}
 rm bin/${name}.out
 

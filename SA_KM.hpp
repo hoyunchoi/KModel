@@ -10,7 +10,6 @@
 #include "../library/pcg_random.hpp"
 
 #include "KM.hpp"
-#include "KM_Rt.hpp"
 #include "fileName.hpp"
 
 struct SA_KM {
@@ -44,7 +43,7 @@ SA_KM::SA_KM(const unsigned& t_networkSize, const unsigned& t_meanDegree, const 
     m_seedEngine.seed((std::random_device())());
 
     //* Real real data
-    CSV::read("../data/COVID/realData/realConfirmed_209.txt", m_realConfirmed);
+    CSV::read("../data/COVID/realData/confirmed_209.txt", m_realConfirmed);
     m_maxDate = m_realConfirmed.size();
 
     //* Read initial energy
@@ -72,43 +71,46 @@ const std::vector<double> SA_KM::m_perturbate(const double& t_perturbationSize =
 }
 
 void SA_KM::sync_run(const unsigned& t_maxEnsemble, const double& t_deltaT = 1e-1) {
-    for (unsigned ensemble = 0; ensemble < t_maxEnsemble; ++ensemble) {
-        //* Perturbate rate of KM simulation
-        const std::vector<double> newRates = m_perturbate();
+    for (unsigned temperatureIndex=0; temperatureIndex<10; ++temperatureIndex){
+        for (unsigned ensemble = 0; ensemble < t_maxEnsemble; ++ensemble) {
+            //* Perturbate rate of KM simulation
+            const std::vector<double> newRates = m_perturbate();
 
-        //* Generate random Engine from seed engine
-        const int randomEngineSeed = m_randomEngineSeedDistribution(m_seedEngine);
-        pcg32 randomEngine(randomEngineSeed);
+            //* Generate random Engine from seed engine
+            const int randomEngineSeed = m_randomEngineSeedDistribution(m_seedEngine);
+            pcg32 randomEngine(randomEngineSeed);
 
-        //* Generate network
-        const Network network = ER::generate(m_networkSize, m_networkSize * m_meanDegree / 2, randomEngine);
+            //* Generate network
+            const Network network = ER::generate(m_networkSize, m_networkSize * m_meanDegree / 2, randomEngine);
 
-        //* Generate KM model and path for data
-        KM simulation(network, newRates, randomEngine);
-        const std::string dataDirectory = "../data/KM/";
-        const std::string networkDirectory = networkName("ER", m_networkSize, m_meanDegree);
-        const std::string fileName = rateName(newRates, randomEngineSeed);
-        CSV::generateDirectory(dataDirectory + networkDirectory);
+            //* Generate KM model and path for data
+            KM simulation(network, newRates, randomEngine);
+            const std::string dataDirectory = "../data/KM/";
+            const std::string networkDirectory = networkName("ER", m_networkSize, m_meanDegree);
+            const std::string fileName = rateName(newRates, randomEngineSeed);
+            CSV::generateDirectory(dataDirectory + networkDirectory);
 
-        //* Run simulation and save data
-        double newEnergy = 0.0;
-        const bool finished = simulation.sync_run(t_deltaT, m_maxDate);
-        if (finished) {
-            newEnergy = simulation.getEnergy(m_realConfirmed);
-            std::ofstream energyFile("energyList.txt", std::ios_base::app);
-            energyFile << networkDirectory << fileName << ": " << newEnergy << "\n";
-        } else {
-            std::cout << "At random seed " << randomEngineSeed << ", simulated finished before reacing current time.\n";
-            continue;
+            //* Run simulation and save data
+            double newEnergy = 0.0;
+            const bool finished = simulation.sync_run(t_deltaT, m_maxDate);
+            if (finished) {
+                newEnergy = simulation.getEnergy(m_realConfirmed);
+            } else {
+                // std::cout << "At random seed " << randomEngineSeed << ", simulated finished before reacing current time.\n";
+                continue;
+            }
+
+            //* Update rate according to energy
+            const double deltaE = newEnergy - m_energy;
+            if (m_probDistribution(m_seedEngine) < std::exp(-1.0 * deltaE / m_temperature)) {
+                m_energy = newEnergy;
+                m_rates = newRates;
+                std::ofstream energyFile("energyList.txt", std::ios_base::app);
+                energyFile << networkDirectory << fileName << ": " << newEnergy << "\n";
+                simulation.save(dataDirectory + networkDirectory + fileName);
+                // std::cout << "Changed rates\n";
+            }
         }
-        simulation.save(dataDirectory + networkDirectory + fileName);
-
-        //* Update rate according to energy
-        const double deltaE = newEnergy - m_energy;
-        if (m_probDistribution(m_seedEngine) < std::exp(-1.0 * deltaE / m_temperature)) {
-            m_energy = newEnergy;
-            m_rates = newRates;
-            std::cout << "Changed rates\n";
-        }
+        m_temperature /= 2;
     }
 }

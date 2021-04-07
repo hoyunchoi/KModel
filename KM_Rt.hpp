@@ -65,6 +65,7 @@ struct KM_Rt {
     KM_Rt() {}
     KM_Rt(const Network&, const std::vector<double>&, const pcg32&, const int&);
     const bool sync_run(const double&, const unsigned&);
+    const double getEnergy(const std::vector<unsigned>&) const;
     void save(const std::string&) const;
 };
 
@@ -545,4 +546,20 @@ void KM_Rt::save(const std::string& t_file) const {
     }
 
     CSV::write(t_file, totalData);
+}
+
+const double KM::getEnergy(const std::vector<unsigned>& t_realConfirmed) const {
+    const unsigned maxDate = t_realConfirmed.size();
+    if (m_data.size() != maxDate) {
+        std::cout << "In get energy function, length of data does not corresponds to max date\n";
+        exit(1);
+    }
+
+    //* Get RMSE from difference between simulation and real data
+    double RMSE = 0.0;
+    for (unsigned date = 0; date < maxDate; ++date) {
+        RMSE += std::pow((double)t_realConfirmed[date] - (double)m_data[date][7] - (double)m_data[date][8] - (double)m_data[date][10], 2.0);
+    }
+    RMSE = std::sqrt(RMSE / (double)maxDate);
+    return RMSE;
 }

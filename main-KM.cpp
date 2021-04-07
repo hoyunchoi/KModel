@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
 
     //* Read real data
     std::vector<unsigned> realConfirmed;
-    CSV::read("realConfirmed_208.txt", realConfirmed);
+    CSV::read("../data/COVID/realData/confirmed_209.txt", realConfirmed);
     const unsigned maxDate = realConfirmed.size();
 
     //* Generate K-Model and path for data
@@ -71,11 +71,11 @@ int main(int argc, char* argv[]) {
         std::cout << "Successfully finished.\n";
         std::ofstream energyFile("energyList.txt", std::ios_base::app);
         energyFile << networkDirectory << rateFileName << ": " << model.getEnergy(realConfirmed) << "\n";
+        model.save(dataDirectory + networkDirectory + rateFileName);
     }
     else{
         std::cout << "Simulated finished before reaching current time.\n";
     }
-    model.save(dataDirectory + networkDirectory + rateFileName);
     //*----------------------------------------------------------------------------------
     std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
     std::ofstream timeLog("time.log", std::ios_base::app);
