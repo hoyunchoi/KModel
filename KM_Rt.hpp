@@ -7,81 +7,81 @@
 #include <string>
 #include <vector>
 
-#include "../library/CSV.hpp"
 #include "../library/Epidemics.hpp"
 #include "../library/Networks.hpp"
-#include "../library/linearAlgebra.hpp"
 #include "../library/pcg_random.hpp"
 #include "../library/stringFormat.hpp"
 
 /*
-    K-Model simulation
-    S + A(I) -> E + A(I) with rate S_E
-    E -> A with rate m_EA
-    E -> I with rate m_EI
-    I -> QI with rate m_IQI
-    A(QA) -> R(CR) with rate m_AR
-    QI -> CR with rate m_QICR
-    X -> QX with rate m_XQX where X=S,E,A,I,R
-    QX -> X with constant time tau
+    R(t) : Number of second infection from node who was infected (became E) at time [t, t+1)
 */
 
 const std::map<std::string, int> stateToInt = {{"S", 0}, {"E", 1}, {"A", 2}, {"I", 3}, {"R", 4}, {"QS", 5}, {"QE", 6}, {"QA", 7}, {"QI", 8}, {"QR", 9}, {"CR", 10}};
 
-struct KNode : public Node_Epidemic {
+struct KNode_Rt : public Node_Epidemic {
     //* Member variables
     double quarantineTime{0.0};      // Time spend after became quarantined
     unsigned quarantineNeighbor{0};  // Number of QA, QI neighbors
     unsigned infectiousNeighbor{0};
+    unsigned infectedDate{0};
+    double avergeInfect{0.0};
+    std::set<unsigned> infectiousNeighborIndex;
 
-    //* Generator
-    KNode() {}
-    KNode(const unsigned& t_index) : Node_Epidemic(t_index) {}
-    KNode(const unsigned& t_index, const std::string& t_state) : Node_Epidemic(t_index, t_state) {}
+    KNode_Rt() {}
+    KNode_Rt(const unsigned& t_index) : Node_Epidemic(t_index) {}
+    KNode_Rt(const unsigned& t_index, const std::string& t_state) : Node_Epidemic(t_index, t_state) {}
 };
 
-struct KM {
+struct KM_Rt {
     //* Member variables
    protected:
-    std::vector<KNode> m_nodes;
+    std::vector<KNode_Rt> m_nodes;
+    std::vector<std::set<unsigned>> m_currentAdjacency;
     std::set<unsigned> m_reactingIndex, m_quarantineIndex;
+    unsigned m_seedSize;
     double m_currentTime;
     unsigned m_nextDate;
     std::vector<std::vector<unsigned>> m_data;
     double m_SE, m_EA, m_EI, m_IQI, m_AR, m_QICR, m_XQX, m_tau;
-    std::vector<unsigned> m_numberOfStates;
+    std::vector<unsigned> m_numberOfStates;                  //* S, E, A, I, R, QS, QE, QA, QI, QR, CR
+    std::vector<std::pair<unsigned, double>> m_avgLinkSize;  //* Number of intervals, sum of every link size
     pcg32 m_randomEngine;
     std::uniform_real_distribution<double> m_probabilityDistribution;
 
-    //* Member functions
+    //* member functions
    protected:
     const unsigned m_getQuarantineNeighbor(const unsigned&) const;
-    const unsigned m_getInfectiousNeighbor(const unsigned&) const;
+    const unsigned m_getInfectiousNeighbor(const unsigned&);
     void m_updateTransitionRate(const unsigned&);
     void m_updateTransitionRates();
+    void m_isolateNode(const unsigned&);
+    void m_restoreNode(const unsigned&);
     void m_release(const double&);
     void m_syncUpdate(const double&);
+    const unsigned m_getLinkSize() const;
 
    public:
     //* Generator
-    KM() {}
-    KM(const Network&, const std::vector<double>&, const pcg32&, const int&);
+    KM_Rt() {}
+    KM_Rt(const Network&, const std::vector<double>&, const pcg32&, const int&);
     const bool sync_run(const double&, const unsigned&);
-    const double getEnergy(const std::vector<unsigned>&) const;
-    void save(const std::string& t_file) const { CSV::write(t_file, m_data); }
+    void save(const std::string&) const;
 };
 
-KM::KM(const Network& t_network, const std::vector<double>& t_rates, const pcg32& t_randomEngine, const int& t_seedSize = 1) : m_randomEngine(t_randomEngine) {
+KM_Rt::KM_Rt(const Network& t_network, const std::vector<double>& t_rates, const pcg32& t_randomEngine, const int& t_seedSize = 1) : m_randomEngine(t_randomEngine), m_seedSize(t_seedSize) {
     m_probabilityDistribution.param(std::uniform_real_distribution<double>::param_type(0.0, 1.0));
 
     //* Set Network
     const unsigned networkSize = t_network.m_size;
+    m_currentAdjacency = t_network.m_adjacency;
     m_nodes.reserve(networkSize);
     for (unsigned index = 0; index < networkSize; ++index) {
-        KNode node(index, "S");
+        KNode_Rt node(index, "S");
         node.m_neighbors = t_network.m_adjacency[index];
         m_nodes.emplace_back(node);
     }
+    m_avgLinkSize.reserve(500);
+    m_avgLinkSize.emplace_back(std::make_pair<unsigned, double>(1, (double)t_network.m_linkSize));
 
     //* Set rates
     m_SE = t_rates[0];
@@ -93,7 +93,7 @@ KM::KM(const Network& t_network, const std::vector<double>& t_rates, const pcg32
     m_XQX = t_rates[6];
     m_tau = t_rates[7];
 
-    //* Set initial seed and number of states
+    //* Set initial seed
     m_numberOfStates.assign(stateToInt.size(), 0);
     m_numberOfStates[0] = networkSize - t_seedSize;
     m_numberOfStates[1] = t_seedSize;
@@ -110,7 +110,15 @@ KM::KM(const Network& t_network, const std::vector<double>& t_rates, const pcg32
     m_updateTransitionRates();
 }
 
-const unsigned KM::m_getQuarantineNeighbor(const unsigned& t_index) const {
+const unsigned KM_Rt::m_getLinkSize() const {
+    unsigned linkSize = 0;
+    for (const std::set<unsigned>& adjacent : m_currentAdjacency) {
+        linkSize += adjacent.size();
+    }
+    return linkSize / 2;
+}
+
+const unsigned KM_Rt::m_getQuarantineNeighbor(const unsigned& t_index) const {
     unsigned quarantineNeighbor = 0;
     for (const unsigned& neighbor : m_nodes[t_index].m_neighbors) {
         if (m_nodes[neighbor].state == "QA" || m_nodes[neighbor].state == "QI") {
@@ -120,17 +128,19 @@ const unsigned KM::m_getQuarantineNeighbor(const unsigned& t_index) const {
     return quarantineNeighbor;
 }
 
-const unsigned KM::m_getInfectiousNeighbor(const unsigned& t_index) const {
+const unsigned KM_Rt::m_getInfectiousNeighbor(const unsigned& t_index) {
     unsigned infectiousNeighbor = 0;
+    m_nodes[t_index].infectiousNeighborIndex.clear();
     for (const unsigned& neighbor : m_nodes[t_index].m_neighbors) {
         if (m_nodes[neighbor].state == "A" || m_nodes[neighbor].state == "I") {
             ++infectiousNeighbor;
+            m_nodes[t_index].infectiousNeighborIndex.emplace(neighbor);
         }
     }
     return infectiousNeighbor;
 }
 
-void KM::m_updateTransitionRate(const unsigned& t_index) {
+void KM_Rt::m_updateTransitionRate(const unsigned& t_index) {
     //* Update number of neighbor QA, QI
     const unsigned quarantineNeighbor = m_getQuarantineNeighbor(t_index);
     m_nodes[t_index].quarantineNeighbor = quarantineNeighbor;
@@ -186,19 +196,35 @@ void KM::m_updateTransitionRate(const unsigned& t_index) {
     }
 }
 
-void KM::m_updateTransitionRates() {
+void KM_Rt::m_updateTransitionRates() {
     for (const unsigned& index : m_reactingIndex) {
         m_updateTransitionRate(index);
     }
 }
 
-void KM::m_release(const double& t_deltaT) {
+void KM_Rt::m_isolateNode(const unsigned& t_index) {
+    for (const unsigned& neighbor : m_nodes[t_index].m_neighbors) {
+        m_currentAdjacency[t_index].erase(neighbor);
+        m_currentAdjacency[neighbor].erase(t_index);
+    }
+}
+
+void KM_Rt::m_restoreNode(const unsigned& t_index) {
+    for (const unsigned& neighbor : m_nodes[t_index].m_neighbors) {
+        if (m_nodes[neighbor].state.find("Q") == m_nodes[neighbor].state.npos) {
+            m_currentAdjacency[t_index].emplace(neighbor);
+            m_currentAdjacency[neighbor].emplace(t_index);
+        }
+    }
+}
+
+void KM_Rt::m_release(const double& t_deltaT) {
     const std::set<unsigned> quarantineIndex = m_quarantineIndex;
     for (const unsigned& index : quarantineIndex) {
         m_nodes[index].quarantineTime += t_deltaT;
         const int intState = stateToInt.at(m_nodes[index].state);
         switch (intState) {
-            //* QS process
+            //* QS -> S
             case 5: {
                 if (m_nodes[index].quarantineTime > m_tau) {
                     m_nodes[index].state = "S";
@@ -210,6 +236,7 @@ void KM::m_release(const double& t_deltaT) {
                     if (m_nodes[index].transitionRate) {
                         m_reactingIndex.emplace(index);
                     }
+                    m_restoreNode(index);
                 }
                 break;
             }
@@ -222,6 +249,7 @@ void KM::m_release(const double& t_deltaT) {
                     m_nodes[index].quarantineTime = 0.0;
                     m_quarantineIndex.erase(index);
                     m_updateTransitionRate(index);
+                    m_restoreNode(index);
                 }
                 break;
             }
@@ -237,6 +265,7 @@ void KM::m_release(const double& t_deltaT) {
                     if (m_nodes[index].transitionRate) {
                         m_reactingIndex.emplace(index);
                     }
+                    m_restoreNode(index);
                 }
                 break;
             }
@@ -248,11 +277,11 @@ void KM::m_release(const double& t_deltaT) {
     }
 }
 
-void KM::m_syncUpdate(const double& t_deltaT) {
+void KM_Rt::m_syncUpdate(const double& t_deltaT) {
     //* Update time and check to store data
     bool storeData = false;
     m_currentTime += t_deltaT;
-    if (m_currentTime >= m_nextDate){
+    if (m_currentTime >= m_nextDate) {
         ++m_nextDate;
         storeData = true;
     }
@@ -281,12 +310,18 @@ void KM::m_syncUpdate(const double& t_deltaT) {
                         m_nodes[index].quarantineTime = 0.0;
                         m_quarantineIndex.emplace(index);
                         newReactingIndex.erase(index);
+                        m_isolateNode(index);
                     }
                     //* S -> E
                     else {
                         m_nodes[index].state = "E";
                         --m_numberOfStates[0];
                         ++m_numberOfStates[1];
+                        //? Changed for reproduction number
+                        m_nodes[index].infectedDate = m_nextDate - 1;
+                        for (const unsigned& neighbor : m_nodes[index].infectiousNeighborIndex) {
+                            m_nodes[neighbor].avergeInfect += 1.0 / (double)m_nodes[index].infectiousNeighbor;
+                        }
                     }
                 }
                 //* S -> S
@@ -318,6 +353,7 @@ void KM::m_syncUpdate(const double& t_deltaT) {
                         ++m_numberOfStates[6];
                         m_nodes[index].quarantineTime = 0.0;
                         m_quarantineIndex.emplace(index);
+                        m_isolateNode(index);
                     }
                 }
                 //* E -> E
@@ -339,6 +375,7 @@ void KM::m_syncUpdate(const double& t_deltaT) {
                         m_nodes[index].state = "QA";
                         --m_numberOfStates[2];
                         ++m_numberOfStates[7];
+                        m_isolateNode(index);
                     }
                 }
                 //* A -> A
@@ -351,6 +388,7 @@ void KM::m_syncUpdate(const double& t_deltaT) {
                     m_nodes[index].state = "QI";
                     --m_numberOfStates[3];
                     ++m_numberOfStates[8];
+                    m_isolateNode(index);
                 }
                 //* I -> I
                 break;
@@ -364,6 +402,7 @@ void KM::m_syncUpdate(const double& t_deltaT) {
                     ++m_numberOfStates[9];
                     m_nodes[index].quarantineTime = 0.0;
                     m_quarantineIndex.emplace(index);
+                    m_isolateNode(index);
                 }
                 //* R -> R
                 newReactingIndex.erase(index);
@@ -419,7 +458,6 @@ void KM::m_syncUpdate(const double& t_deltaT) {
             }
         }
     }
-
     m_reactingIndex = newReactingIndex;
     //* Add neighbors to reacting index
     for (const unsigned& index : newReactingIndex) {
@@ -441,16 +479,21 @@ void KM::m_syncUpdate(const double& t_deltaT) {
         }
     }
 
-    //* Update time and Transition rate
-    if (storeData){
+    //* Store data if neccessary and update average link size
+    //? Changed for reproduction number
+    if (storeData) {
         m_data.emplace_back(m_numberOfStates);
+        m_avgLinkSize.emplace_back(std::make_pair<unsigned, double>(1, (double)m_getLinkSize()));
+    } else {
+        ++m_avgLinkSize[m_nextDate - 1].first;
+        m_avgLinkSize[m_nextDate - 1].second += (double)m_getLinkSize();
     }
 
     //* Update transition rate of every reacting nodes
     m_updateTransitionRates();
 }
 
-const bool KM::sync_run(const double& t_deltaT, const unsigned& t_maxDate) {
+const bool KM_Rt::sync_run(const double& t_deltaT, const unsigned& t_maxDate) {
     while (m_nextDate < t_maxDate) {
         m_syncUpdate(t_deltaT);
         if (m_reactingIndex.empty()) {
@@ -461,18 +504,45 @@ const bool KM::sync_run(const double& t_deltaT, const unsigned& t_maxDate) {
     return true;
 }
 
-const double KM::getEnergy(const std::vector<unsigned>& t_realConfirmed) const {
-    const unsigned maxDate = t_realConfirmed.size();
-    if (m_data.size() != maxDate) {
-        std::cout << "In get energy function, length of data does not corresponds to max date\n";
-        exit(1);
+void KM_Rt::save(const std::string& t_file) const {
+    std::vector<std::vector<double>> totalData;
+    totalData.reserve(m_data.size());
+
+    //* Follow nodes that have not counted as reproduction number yet
+    std::set<unsigned> remainedNodesIndex;
+    for (unsigned index = 0; index < m_nodes.size(); ++index) {
+        remainedNodesIndex.emplace_hint(remainedNodesIndex.end(), index);
     }
 
-    //* Get RMSE from difference between simulation and real data
-    double RMSE = 0.0;
-    for (unsigned date = 0; date < maxDate; ++date) {
-        RMSE += std::pow((double)t_realConfirmed[date] - (double)m_data[date][7] - (double)m_data[date][8] - (double)m_data[date][10], 2.0);
+    //* From day1, consider every nodes
+    for (unsigned date = 0; date < m_data.size(); ++date) {
+        //* Save numer of states
+        std::vector<double> temp(m_data[date].begin(), m_data[date].end());
+
+        //* Save average link size
+        const double avgLink = m_avgLinkSize[date].second / (double)m_avgLinkSize[date].first;
+        temp.emplace_back(avgLink);
+
+        //* Save reproduction number
+        double reproduction = 0.0;
+        unsigned num = 0;
+        const std::set<unsigned> temp_remainedNodesIndex = remainedNodesIndex;
+        for (const unsigned& index : temp_remainedNodesIndex) {
+            if (m_nodes[index].infectedDate == date) {
+                ++num;
+                reproduction += m_nodes[index].avergeInfect;
+                remainedNodesIndex.erase(index);
+            }
+        }
+        if (date == 0){
+            num = m_seedSize;
+        }
+        reproduction = num > 0 ? reproduction / num : 0.0;
+        temp.emplace_back(reproduction);
+
+        //* Save to total data
+        totalData.emplace_back(temp);
     }
-    RMSE = std::sqrt(RMSE / (double)maxDate);
-    return RMSE;
+
+    CSV::write(t_file, totalData);
 }

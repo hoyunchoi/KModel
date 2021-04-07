@@ -15,25 +15,36 @@ def readCSV(t_fileName):
 
 
 #* Read Data
-# def readKM(network_type, network_size, mean_degree, S_E, E_AI, pA, I_QI, A_R, QI_CR, X_QX, tau, t_randomEngineSeed=None):
-#     directory = rootDirectory + network_type + ",N{:.1e},M{:d}/".format(network_size, mean_degree)
-#     fileName = "SE{:.2f},EAI{:.2f},pA{:.2f},IQI{:.2f},AR{:.2f},QICR{:.2f},XQX{:.2f},T{:.2f}".format(S_E, E_AI, pA, I_QI, A_R, QI_CR, X_QX, tau)
-#     if (t_randomEngineSeed == None):
-#         fullFileName = directory + fileName + ".txt"
-#     else:
-#         fullFileName = directory + fileName + "-{:d}.txt".format(int(t_randomEngineSeed))
+def KM(fileName):
+    intToState = {0:"S", 1:"E", 2:"A", 3:"I", 4:"R", 5:"QS", 6:"QE", 7:"QA", 8:"QI", 9:"QR", 10:"CR"}
+    df = pd.read_csv("../data/KM/" + fileName, header=None)
+    data = {}
+    for index, value in enumerate(df.values.transpose()):
+        data[intToState[index]] = value
+    return data
 
-#     return readCSV(fullFileName)
+def KM_Rt(fileName):
+    intToState = {0:"S", 1:"E", 2:"A", 3:"I", 4:"R", 5:"QS", 6:"QE", 7:"QA", 8:"QI", 9:"QR", 10:"CR", 11:"L", 12:"Rt"}
+    df = pd.read_csv("../data/KM_Rt/" + fileName, header=None)
+    data = {}
+    for index, value in enumerate(df.values.transpose()):
+        data[intToState[index]] = value
+    return data
 
-def readKM(fileName):
-    return readCSV("../data/KM/" + fileName)
+def real_confirmed(t=209):
+    return readCSV("../data/COVID/realData/confirmed_{:d}.txt".format(t))
 
-def readReal():
-    return readCSV("realConfirmed_208.txt")
+def real_Rt(t=342):
+    return readCSV("Rt_{:d}.txt".format(t))
 
+def fig4():
+    intToState = {0: "t", 1:"S", 2:"QS", 3:"E", 4:"QE", 5:"A", 6:"QA", 7:"I", 8:"QI", 9:"R", 10:"QR", 11:"CR"}
+    df = pd.read_csv("../data/COVID/realData/fig4_data.txt", header=None)
+    data = {}
+    for index, value in enumerate(df.values.transpose()):
+        data[intToState[index]] = value[::100]
+    return data
 
-def readFig4():
-    return readCSV("fig4_t_S_QS_E_QE_A_QA_I_QI_R_QR_CR.txt")
 
 if __name__ == "__main__":
-    print("This is a moduel parameters.py")
+    print("This is a moduel read_data.py")
