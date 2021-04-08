@@ -23,8 +23,8 @@ int main(int argc, char* argv[]) {
     const std::string networkType = "ER";
     const unsigned networkSize = std::stoul(argv[1]);
     const unsigned meanDegree = std::stoul(argv[2]);
-    const unsigned linkSize = networkSize * meanDegree / 2;
-    const Network network = ER::generate(networkSize, linkSize, randomEngine);
+    const unsigned long long linkSize = networkSize * meanDegree / 2;
+    const Network<unsigned> network = ER::generate(networkSize, linkSize, randomEngine);
     // const double degreeExponent = 2.5;
     // const Network network = SF::generate(network, linkSize, degreeExponent, randomEngine);
 
@@ -39,7 +39,11 @@ int main(int argc, char* argv[]) {
     rates[6] = std::stod(argv[9]);
     rates[7] = std::stod(argv[10]);
     const double deltaT = 1e-1;
-    const unsigned maxDate = 209;
+
+    //* Read real data
+    std::vector<unsigned> realConfirmed;
+    CSV::read("../data/COVID/realData/confirmed_209.txt", realConfirmed);
+    const unsigned maxDate = realConfirmed.size();
 
     //* Generate K-Model with reproduction number and path for data
     KM_Rt model(network, rates, randomEngine);

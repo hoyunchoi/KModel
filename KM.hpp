@@ -28,7 +28,7 @@
 
 const std::map<std::string, int> stateToInt = {{"S", 0}, {"E", 1}, {"A", 2}, {"I", 3}, {"R", 4}, {"QS", 5}, {"QE", 6}, {"QA", 7}, {"QI", 8}, {"QR", 9}, {"CR", 10}};
 
-struct KNode : public Node_Epidemic {
+struct KNode : public Node_Epidemic<unsigned> {
     //* Member variables
     double quarantineTime{0.0};      // Time spend after became quarantined
     unsigned quarantineNeighbor{0};  // Number of QA, QI neighbors
@@ -36,8 +36,8 @@ struct KNode : public Node_Epidemic {
 
     //* Generator
     KNode() {}
-    KNode(const unsigned& t_index) : Node_Epidemic(t_index) {}
-    KNode(const unsigned& t_index, const std::string& t_state) : Node_Epidemic(t_index, t_state) {}
+    KNode(const unsigned& t_index) : Node_Epidemic<unsigned>(t_index) {}
+    KNode(const unsigned& t_index, const std::string& t_state) : Node_Epidemic<unsigned>(t_index, t_state) {}
 };
 
 struct KM {
@@ -65,21 +65,21 @@ struct KM {
    public:
     //* Generator
     KM() {}
-    KM(const Network&, const std::vector<double>&, const pcg32&, const int&);
+    KM(const Network<unsigned>&, const std::vector<double>&, const pcg32&, const int&);
     const bool sync_run(const double&, const unsigned&);
     const double getEnergy(const std::vector<unsigned>&) const;
     void save(const std::string& t_file) const { CSV::write(t_file, m_data); }
 };
 
-KM::KM(const Network& t_network, const std::vector<double>& t_rates, const pcg32& t_randomEngine, const int& t_seedSize = 1) : m_randomEngine(t_randomEngine) {
+KM::KM(const Network<unsigned>& t_network, const std::vector<double>& t_rates, const pcg32& t_randomEngine, const int& t_seedSize = 1) : m_randomEngine(t_randomEngine) {
     m_probabilityDistribution.param(std::uniform_real_distribution<double>::param_type(0.0, 1.0));
 
     //* Set Network
-    const unsigned networkSize = t_network.m_size;
+    const unsigned networkSize = t_network.size;
     m_nodes.reserve(networkSize);
     for (unsigned index = 0; index < networkSize; ++index) {
         KNode node(index, "S");
-        node.m_neighbors = t_network.m_adjacency[index];
+        node.neighbors = t_network.adjacency[index];
         m_nodes.emplace_back(node);
     }
 
@@ -112,7 +112,7 @@ KM::KM(const Network& t_network, const std::vector<double>& t_rates, const pcg32
 
 const unsigned KM::m_getQuarantineNeighbor(const unsigned& t_index) const {
     unsigned quarantineNeighbor = 0;
-    for (const unsigned& neighbor : m_nodes[t_index].m_neighbors) {
+    for (const unsigned& neighbor : m_nodes[t_index].neighbors) {
         if (m_nodes[neighbor].state == "QA" || m_nodes[neighbor].state == "QI") {
             ++quarantineNeighbor;
         }
@@ -122,7 +122,7 @@ const unsigned KM::m_getQuarantineNeighbor(const unsigned& t_index) const {
 
 const unsigned KM::m_getInfectiousNeighbor(const unsigned& t_index) const {
     unsigned infectiousNeighbor = 0;
-    for (const unsigned& neighbor : m_nodes[t_index].m_neighbors) {
+    for (const unsigned& neighbor : m_nodes[t_index].neighbors) {
         if (m_nodes[neighbor].state == "A" || m_nodes[neighbor].state == "I") {
             ++infectiousNeighbor;
         }
@@ -425,7 +425,7 @@ void KM::m_syncUpdate(const double& t_deltaT) {
     for (const unsigned& index : newReactingIndex) {
         //* Add neighbor S of A,I node into reacting nodes (spreading)
         if (m_nodes[index].state == "A" || m_nodes[index].state == "I") {
-            for (const unsigned& neighbor : m_nodes[index].m_neighbors) {
+            for (const unsigned& neighbor : m_nodes[index].neighbors) {
                 if (m_nodes[neighbor].state == "S") {
                     m_reactingIndex.emplace(neighbor);
                 }
@@ -433,7 +433,7 @@ void KM::m_syncUpdate(const double& t_deltaT) {
         }
         //* Add neighbor S,R of QA,QI node into reacting nodes (quarantine)
         else if (m_nodes[index].state == "QA" || m_nodes[index].state == "QI") {
-            for (const unsigned& neighbor : m_nodes[index].m_neighbors) {
+            for (const unsigned& neighbor : m_nodes[index].neighbors) {
                 if (m_nodes[neighbor].state == "S" || m_nodes[neighbor].state == "R") {
                     m_reactingIndex.emplace(neighbor);
                 }

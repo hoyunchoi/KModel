@@ -35,8 +35,8 @@ int main(int argc, char* argv[]) {
     const std::string networkType = "ER";
     const unsigned networkSize = std::stoul(argv[1]);
     const unsigned meanDegree = std::stoul(argv[2]);
-    const unsigned linkSize = networkSize * meanDegree / 2;
-    const Network network = ER::generate(networkSize, linkSize, randomEngine);
+    const unsigned long long linkSize = networkSize * meanDegree / 2;
+    const Network<unsigned> network = ER::generate(networkSize, linkSize, randomEngine);
     // const double degreeExponent = 2.5;
     // const Network network = SF::generate(network, linkSize, degreeExponent, randomEngine);
 

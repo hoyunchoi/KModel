@@ -18,7 +18,7 @@
 
 const std::map<std::string, int> stateToInt = {{"S", 0}, {"E", 1}, {"A", 2}, {"I", 3}, {"R", 4}, {"QS", 5}, {"QE", 6}, {"QA", 7}, {"QI", 8}, {"QR", 9}, {"CR", 10}};
 
-struct KNode_Rt : public Node_Epidemic {
+struct KNode_Rt : public Node_Epidemic<unsigned> {
     //* Member variables
     double quarantineTime{0.0};      // Time spend after became quarantined
     unsigned quarantineNeighbor{0};  // Number of QA, QI neighbors
@@ -28,8 +28,8 @@ struct KNode_Rt : public Node_Epidemic {
     std::set<unsigned> infectiousNeighborIndex;
 
     KNode_Rt() {}
-    KNode_Rt(const unsigned& t_index) : Node_Epidemic(t_index) {}
-    KNode_Rt(const unsigned& t_index, const std::string& t_state) : Node_Epidemic(t_index, t_state) {}
+    KNode_Rt(const unsigned& t_index) : Node_Epidemic<unsigned>(t_index) {}
+    KNode_Rt(const unsigned& t_index, const std::string& t_state) : Node_Epidemic<unsigned>(t_index, t_state) {}
 };
 
 struct KM_Rt {
@@ -63,26 +63,26 @@ struct KM_Rt {
    public:
     //* Generator
     KM_Rt() {}
-    KM_Rt(const Network&, const std::vector<double>&, const pcg32&, const int&);
+    KM_Rt(const Network<unsigned>&, const std::vector<double>&, const pcg32&, const int&);
     const bool sync_run(const double&, const unsigned&);
     const double getEnergy(const std::vector<unsigned>&) const;
     void save(const std::string&) const;
 };
 
-KM_Rt::KM_Rt(const Network& t_network, const std::vector<double>& t_rates, const pcg32& t_randomEngine, const int& t_seedSize = 1) : m_randomEngine(t_randomEngine), m_seedSize(t_seedSize) {
+KM_Rt::KM_Rt(const Network<unsigned>& t_network, const std::vector<double>& t_rates, const pcg32& t_randomEngine, const int& t_seedSize = 1) : m_randomEngine(t_randomEngine), m_seedSize(t_seedSize) {
     m_probabilityDistribution.param(std::uniform_real_distribution<double>::param_type(0.0, 1.0));
 
     //* Set Network
-    const unsigned networkSize = t_network.m_size;
-    m_currentAdjacency = t_network.m_adjacency;
+    const unsigned networkSize = t_network.size;
+    m_currentAdjacency = t_network.adjacency;
     m_nodes.reserve(networkSize);
     for (unsigned index = 0; index < networkSize; ++index) {
         KNode_Rt node(index, "S");
-        node.m_neighbors = t_network.m_adjacency[index];
+        node.neighbors = t_network.adjacency[index];
         m_nodes.emplace_back(node);
     }
     m_avgLinkSize.reserve(500);
-    m_avgLinkSize.emplace_back(std::make_pair<unsigned, double>(1, (double)t_network.m_linkSize));
+    m_avgLinkSize.emplace_back(std::make_pair<unsigned, double>(1, (double)t_network.linkSize));
 
     //* Set rates
     m_SE = t_rates[0];
@@ -121,7 +121,7 @@ const unsigned KM_Rt::m_getLinkSize() const {
 
 const unsigned KM_Rt::m_getQuarantineNeighbor(const unsigned& t_index) const {
     unsigned quarantineNeighbor = 0;
-    for (const unsigned& neighbor : m_nodes[t_index].m_neighbors) {
+    for (const unsigned& neighbor : m_nodes[t_index].neighbors) {
         if (m_nodes[neighbor].state == "QA" || m_nodes[neighbor].state == "QI") {
             ++quarantineNeighbor;
         }
@@ -132,7 +132,7 @@ const unsigned KM_Rt::m_getQuarantineNeighbor(const unsigned& t_index) const {
 const unsigned KM_Rt::m_getInfectiousNeighbor(const unsigned& t_index) {
     unsigned infectiousNeighbor = 0;
     m_nodes[t_index].infectiousNeighborIndex.clear();
-    for (const unsigned& neighbor : m_nodes[t_index].m_neighbors) {
+    for (const unsigned& neighbor : m_nodes[t_index].neighbors) {
         if (m_nodes[neighbor].state == "A" || m_nodes[neighbor].state == "I") {
             ++infectiousNeighbor;
             m_nodes[t_index].infectiousNeighborIndex.emplace(neighbor);
@@ -204,14 +204,14 @@ void KM_Rt::m_updateTransitionRates() {
 }
 
 void KM_Rt::m_isolateNode(const unsigned& t_index) {
-    for (const unsigned& neighbor : m_nodes[t_index].m_neighbors) {
+    for (const unsigned& neighbor : m_nodes[t_index].neighbors) {
         m_currentAdjacency[t_index].erase(neighbor);
         m_currentAdjacency[neighbor].erase(t_index);
     }
 }
 
 void KM_Rt::m_restoreNode(const unsigned& t_index) {
-    for (const unsigned& neighbor : m_nodes[t_index].m_neighbors) {
+    for (const unsigned& neighbor : m_nodes[t_index].neighbors) {
         if (m_nodes[neighbor].state.find("Q") == m_nodes[neighbor].state.npos) {
             m_currentAdjacency[t_index].emplace(neighbor);
             m_currentAdjacency[neighbor].emplace(t_index);
@@ -464,7 +464,7 @@ void KM_Rt::m_syncUpdate(const double& t_deltaT) {
     for (const unsigned& index : newReactingIndex) {
         //* Add neighbor S of A,I node into reacting nodes (spreading)
         if (m_nodes[index].state == "A" || m_nodes[index].state == "I") {
-            for (const unsigned& neighbor : m_nodes[index].m_neighbors) {
+            for (const unsigned& neighbor : m_nodes[index].neighbors) {
                 if (m_nodes[neighbor].state == "S") {
                     m_reactingIndex.emplace(neighbor);
                 }
@@ -472,7 +472,7 @@ void KM_Rt::m_syncUpdate(const double& t_deltaT) {
         }
         //* Add neighbor S,R of QA,QI node into reacting nodes (quarantine)
         else if (m_nodes[index].state == "QA" || m_nodes[index].state == "QI") {
-            for (const unsigned& neighbor : m_nodes[index].m_neighbors) {
+            for (const unsigned& neighbor : m_nodes[index].neighbors) {
                 if (m_nodes[neighbor].state == "S" || m_nodes[neighbor].state == "R") {
                     m_reactingIndex.emplace(neighbor);
                 }
@@ -548,7 +548,7 @@ void KM_Rt::save(const std::string& t_file) const {
     CSV::write(t_file, totalData);
 }
 
-const double KM::getEnergy(const std::vector<unsigned>& t_realConfirmed) const {
+const double KM_Rt::getEnergy(const std::vector<unsigned>& t_realConfirmed) const {
     const unsigned maxDate = t_realConfirmed.size();
     if (m_data.size() != maxDate) {
         std::cout << "In get energy function, length of data does not corresponds to max date\n";

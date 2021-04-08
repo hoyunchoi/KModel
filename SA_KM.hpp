@@ -60,7 +60,7 @@ SA_KM::SA_KM(const unsigned& t_networkSize, const unsigned& t_meanDegree, const 
     }
 }
 
-const std::vector<double> SA_KM::m_perturbate(const double& t_perturbationSize = 0.005) {
+const std::vector<double> SA_KM::m_perturbate(const double& t_perturbationSize = 0.001) {
     std::vector<double> newRates = m_rates;
 
     //* Perturbate only rate[0]: SE or rate[6]: XQX
@@ -74,14 +74,14 @@ void SA_KM::sync_run(const unsigned& t_maxEnsemble, const double& t_deltaT = 1e-
     for (unsigned temperatureIndex=0; temperatureIndex<10; ++temperatureIndex){
         for (unsigned ensemble = 0; ensemble < t_maxEnsemble; ++ensemble) {
             //* Perturbate rate of KM simulation
-            const std::vector<double> newRates = m_perturbate();
+            const std::vector<double> newRates = m_perturbate(0.001);
 
             //* Generate random Engine from seed engine
             const int randomEngineSeed = m_randomEngineSeedDistribution(m_seedEngine);
             pcg32 randomEngine(randomEngineSeed);
 
             //* Generate network
-            const Network network = ER::generate(m_networkSize, m_networkSize * m_meanDegree / 2, randomEngine);
+            const Network<unsigned> network = ER::generate(m_networkSize, (unsigned long long)m_networkSize * m_meanDegree / 2, randomEngine);
 
             //* Generate KM model and path for data
             KM simulation(network, newRates, randomEngine);
