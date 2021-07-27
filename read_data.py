@@ -58,6 +58,6 @@ def getMinimumEnergy(networkSize):
     return minimum_line
 
 if __name__ == "__main__":
-    print("This is a moduel read_data.py")
-    line = getMinimumEnergy(160000)
+    # print("This is a moduel read_data.py")
+    line = getMinimumEnergy(20000)
     print(line)

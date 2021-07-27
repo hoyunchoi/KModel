@@ -20,8 +20,8 @@ const std::map<std::string, int> stateToInt = {{"S", 0}, {"E", 1}, {"A", 2}, {"I
 
 struct KNode_Rt : public Node_Epidemic<unsigned> {
     //* Member variables
-    double quarantineTime{0.0};      // Time spend after became quarantined
-    unsigned quarantineNeighbor{0};  // Number of QA, QI neighbors
+    double quarantineTime{0.0};     // Time spend after became quarantined
+    unsigned quarantineNeighbor{0}; // Number of QA, QI neighbors
     unsigned infectiousNeighbor{0};
     unsigned infectedDate{0};
     double avergeInfect{0.0};
@@ -34,7 +34,7 @@ struct KNode_Rt : public Node_Epidemic<unsigned> {
 
 struct KM_Rt {
     //* Member variables
-   protected:
+  protected:
     std::vector<KNode_Rt> m_nodes;
     std::vector<std::set<unsigned>> m_currentAdjacency;
     std::set<unsigned> m_reactingIndex, m_quarantineIndex;
@@ -43,13 +43,13 @@ struct KM_Rt {
     unsigned m_nextDate;
     std::vector<std::vector<unsigned>> m_data;
     double m_SE, m_EA, m_EI, m_IQI, m_AR, m_QICR, m_XQX, m_tau;
-    std::vector<unsigned> m_numberOfStates;                  //* S, E, A, I, R, QS, QE, QA, QI, QR, CR
-    std::vector<std::pair<unsigned, double>> m_avgLinkSize;  //* Number of intervals, sum of every link size
+    std::vector<unsigned> m_numberOfStates;                 //* S, E, A, I, R, QS, QE, QA, QI, QR, CR
+    std::vector<std::pair<unsigned, double>> m_avgLinkSize; //* Number of intervals, sum of every link size
     pcg32 m_randomEngine;
     std::uniform_real_distribution<double> m_probabilityDistribution;
 
     //* member functions
-   protected:
+  protected:
     const unsigned m_getQuarantineNeighbor(const unsigned&) const;
     const unsigned m_getInfectiousNeighbor(const unsigned&);
     void m_updateTransitionRate(const unsigned&);
@@ -60,7 +60,7 @@ struct KM_Rt {
     void m_syncUpdate(const double&);
     const unsigned m_getLinkSize() const;
 
-   public:
+  public:
     //* Generator
     KM_Rt() {}
     KM_Rt(const Network<unsigned>&, const std::vector<double>&, const pcg32&, const int&);
@@ -147,53 +147,53 @@ void KM_Rt::m_updateTransitionRate(const unsigned& t_index) {
     m_nodes[t_index].quarantineNeighbor = quarantineNeighbor;
     const int intState = stateToInt.at(m_nodes[t_index].state);
     switch (intState) {
-        //* S process
-        case 0: {
-            const unsigned infectiousNeighbor = m_getInfectiousNeighbor(t_index);
-            m_nodes[t_index].infectiousNeighbor = infectiousNeighbor;
-            m_nodes[t_index].transitionRate = m_SE * infectiousNeighbor + m_XQX * quarantineNeighbor;
-            break;
-        }
-        //* E process
-        case 1: {
-            m_nodes[t_index].transitionRate = m_EA + m_EI + m_XQX * quarantineNeighbor;
-            break;
-        }
-        //* A process
-        case 2: {
-            m_nodes[t_index].transitionRate = m_AR + m_XQX * quarantineNeighbor;
-            break;
-        }
-        //* I process
-        case 3: {
-            m_nodes[t_index].transitionRate = m_IQI + m_XQX * quarantineNeighbor;
-            break;
-        }
-        //* R process
-        case 4: {
-            m_nodes[t_index].transitionRate = m_XQX * quarantineNeighbor;
-            break;
-        }
-        //* QE process
-        case 6: {
-            m_nodes[t_index].transitionRate = m_EA + m_EI;
-            break;
-        }
-        //* QA process
-        case 7: {
-            m_nodes[t_index].transitionRate = m_AR;
-            break;
-        }
-        //* QI process
-        case 8: {
-            m_nodes[t_index].transitionRate = m_QICR;
-            break;
-        }
-        //* QS, QR, CR process
-        default: {
-            m_nodes[t_index].transitionRate = 0.0;
-            break;
-        }
+    //* S process
+    case 0: {
+        const unsigned infectiousNeighbor = m_getInfectiousNeighbor(t_index);
+        m_nodes[t_index].infectiousNeighbor = infectiousNeighbor;
+        m_nodes[t_index].transitionRate = m_SE * infectiousNeighbor + m_XQX * quarantineNeighbor;
+        break;
+    }
+    //* E process
+    case 1: {
+        m_nodes[t_index].transitionRate = m_EA + m_EI + m_XQX * quarantineNeighbor;
+        break;
+    }
+    //* A process
+    case 2: {
+        m_nodes[t_index].transitionRate = m_AR + m_XQX * quarantineNeighbor;
+        break;
+    }
+    //* I process
+    case 3: {
+        m_nodes[t_index].transitionRate = m_IQI + m_XQX * quarantineNeighbor;
+        break;
+    }
+    //* R process
+    case 4: {
+        m_nodes[t_index].transitionRate = m_XQX * quarantineNeighbor;
+        break;
+    }
+    //* QE process
+    case 6: {
+        m_nodes[t_index].transitionRate = m_EA + m_EI;
+        break;
+    }
+    //* QA process
+    case 7: {
+        m_nodes[t_index].transitionRate = m_AR;
+        break;
+    }
+    //* QI process
+    case 8: {
+        m_nodes[t_index].transitionRate = m_QICR;
+        break;
+    }
+    //* QS, QR, CR process
+    default: {
+        m_nodes[t_index].transitionRate = 0.0;
+        break;
+    }
     }
 }
 
@@ -225,55 +225,55 @@ void KM_Rt::m_release(const double& t_deltaT) {
         m_nodes[index].quarantineTime += t_deltaT;
         const int intState = stateToInt.at(m_nodes[index].state);
         switch (intState) {
-            //* QS -> S
-            case 5: {
-                if (m_nodes[index].quarantineTime > m_tau) {
-                    m_nodes[index].state = "S";
-                    --m_numberOfStates[5];
-                    ++m_numberOfStates[0];
-                    m_nodes[index].quarantineTime = 0.0;
-                    m_quarantineIndex.erase(index);
-                    m_updateTransitionRate(index);
-                    if (m_nodes[index].transitionRate) {
-                        m_reactingIndex.emplace(index);
-                    }
-                    m_restoreNode(index);
+        //* QS -> S
+        case 5: {
+            if (m_nodes[index].quarantineTime > m_tau) {
+                m_nodes[index].state = "S";
+                --m_numberOfStates[5];
+                ++m_numberOfStates[0];
+                m_nodes[index].quarantineTime = 0.0;
+                m_quarantineIndex.erase(index);
+                m_updateTransitionRate(index);
+                if (m_nodes[index].transitionRate) {
+                    m_reactingIndex.emplace(index);
                 }
-                break;
+                m_restoreNode(index);
             }
-            //* QE process
-            case 6: {
-                if (m_nodes[index].quarantineTime > m_tau) {
-                    m_nodes[index].state = "E";
-                    --m_numberOfStates[6];
-                    ++m_numberOfStates[1];
-                    m_nodes[index].quarantineTime = 0.0;
-                    m_quarantineIndex.erase(index);
-                    m_updateTransitionRate(index);
-                    m_restoreNode(index);
+            break;
+        }
+        //* QE process
+        case 6: {
+            if (m_nodes[index].quarantineTime > m_tau) {
+                m_nodes[index].state = "E";
+                --m_numberOfStates[6];
+                ++m_numberOfStates[1];
+                m_nodes[index].quarantineTime = 0.0;
+                m_quarantineIndex.erase(index);
+                m_updateTransitionRate(index);
+                m_restoreNode(index);
+            }
+            break;
+        }
+        //* QR process
+        case 9: {
+            if (m_nodes[index].quarantineTime > m_tau) {
+                m_nodes[index].state = "R";
+                --m_numberOfStates[9];
+                ++m_numberOfStates[4];
+                m_nodes[index].quarantineTime = 0.0;
+                m_quarantineIndex.erase(index);
+                m_updateTransitionRate(index);
+                if (m_nodes[index].transitionRate) {
+                    m_reactingIndex.emplace(index);
                 }
-                break;
+                m_restoreNode(index);
             }
-            //* QR process
-            case 9: {
-                if (m_nodes[index].quarantineTime > m_tau) {
-                    m_nodes[index].state = "R";
-                    --m_numberOfStates[9];
-                    ++m_numberOfStates[4];
-                    m_nodes[index].quarantineTime = 0.0;
-                    m_quarantineIndex.erase(index);
-                    m_updateTransitionRate(index);
-                    if (m_nodes[index].transitionRate) {
-                        m_reactingIndex.emplace(index);
-                    }
-                    m_restoreNode(index);
-                }
-                break;
-            }
-            //* QA, QI process
-            default: {
-                break;
-            }
+            break;
+        }
+        //* QA, QI process
+        default: {
+            break;
+        }
         }
     }
 }
@@ -299,164 +299,164 @@ void KM_Rt::m_syncUpdate(const double& t_deltaT) {
         const double prob = m_probabilityDistribution(m_randomEngine);
 
         switch (intState) {
-            //* S process
-            case 0: {
-                if (prob <= transitionProb) {
-                    const double p = m_probabilityDistribution(m_randomEngine);
-                    //* S -> QS
-                    if (p * transitionRate < m_nodes[index].quarantineNeighbor * m_XQX) {
-                        m_nodes[index].state = "QS";
-                        --m_numberOfStates[0];
-                        ++m_numberOfStates[5];
-                        m_nodes[index].quarantineTime = 0.0;
-                        m_quarantineIndex.emplace(index);
-                        newReactingIndex.erase(index);
-                        m_isolateNode(index);
-                    }
-                    //* S -> E
-                    else {
-                        m_nodes[index].state = "E";
-                        --m_numberOfStates[0];
-                        ++m_numberOfStates[1];
-                        //? Changed for reproduction number
-                        m_nodes[index].infectedDate = m_nextDate - 1;
-                        for (const unsigned& neighbor : m_nodes[index].infectiousNeighborIndex) {
-                            m_nodes[neighbor].avergeInfect += 1.0 / (double)m_nodes[index].infectiousNeighbor;
-                        }
-                    }
-                }
-                //* S -> S
-                else {
+        //* S process
+        case 0: {
+            if (prob <= transitionProb) {
+                const double p = m_probabilityDistribution(m_randomEngine);
+                //* S -> QS
+                if (p * transitionRate < m_nodes[index].quarantineNeighbor * m_XQX) {
+                    m_nodes[index].state = "QS";
+                    --m_numberOfStates[0];
+                    ++m_numberOfStates[5];
+                    m_nodes[index].quarantineTime = 0.0;
+                    m_quarantineIndex.emplace(index);
                     newReactingIndex.erase(index);
-                }
-                break;
-            }
-            //* E process
-            case 1: {
-                if (prob <= transitionProb) {
-                    const double p = m_probabilityDistribution(m_randomEngine);
-                    //* E -> A
-                    if (p * transitionRate < m_EA) {
-                        m_nodes[index].state = "A";
-                        --m_numberOfStates[1];
-                        ++m_numberOfStates[2];
-                    }
-                    //* E -> I
-                    else if (p * transitionRate < m_EA + m_EI) {
-                        m_nodes[index].state = "I";
-                        --m_numberOfStates[1];
-                        ++m_numberOfStates[3];
-                    }
-                    //* E -> QE
-                    else {
-                        m_nodes[index].state = "QE";
-                        --m_numberOfStates[1];
-                        ++m_numberOfStates[6];
-                        m_nodes[index].quarantineTime = 0.0;
-                        m_quarantineIndex.emplace(index);
-                        m_isolateNode(index);
-                    }
-                }
-                //* E -> E
-                break;
-            }
-            //* A process
-            case 2: {
-                if (prob <= transitionProb) {
-                    const double p = m_probabilityDistribution(m_randomEngine);
-                    //* A -> R
-                    if (p * transitionRate < m_AR) {
-                        m_nodes[index].state = "R";
-                        --m_numberOfStates[2];
-                        ++m_numberOfStates[4];
-                        newReactingIndex.erase(index);
-                    }
-                    //* A->QA
-                    else {
-                        m_nodes[index].state = "QA";
-                        --m_numberOfStates[2];
-                        ++m_numberOfStates[7];
-                        m_isolateNode(index);
-                    }
-                }
-                //* A -> A
-                break;
-            }
-            //* I process
-            case 3: {
-                //* I -> QI
-                if (prob <= transitionProb) {
-                    m_nodes[index].state = "QI";
-                    --m_numberOfStates[3];
-                    ++m_numberOfStates[8];
                     m_isolateNode(index);
                 }
-                //* I -> I
-                break;
+                //* S -> E
+                else {
+                    m_nodes[index].state = "E";
+                    --m_numberOfStates[0];
+                    ++m_numberOfStates[1];
+                    //? Changed for reproduction number
+                    m_nodes[index].infectedDate = m_nextDate - 1;
+                    for (const unsigned& neighbor : m_nodes[index].infectiousNeighborIndex) {
+                        m_nodes[neighbor].avergeInfect += 1.0 / (double)m_nodes[index].infectiousNeighbor;
+                    }
+                }
             }
-            //* R process
-            case 4: {
-                //* R -> QR
-                if (prob <= transitionProb) {
-                    m_nodes[index].state = "QR";
-                    --m_numberOfStates[4];
-                    ++m_numberOfStates[9];
+            //* S -> S
+            else {
+                newReactingIndex.erase(index);
+            }
+            break;
+        }
+        //* E process
+        case 1: {
+            if (prob <= transitionProb) {
+                const double p = m_probabilityDistribution(m_randomEngine);
+                //* E -> A
+                if (p * transitionRate < m_EA) {
+                    m_nodes[index].state = "A";
+                    --m_numberOfStates[1];
+                    ++m_numberOfStates[2];
+                }
+                //* E -> I
+                else if (p * transitionRate < m_EA + m_EI) {
+                    m_nodes[index].state = "I";
+                    --m_numberOfStates[1];
+                    ++m_numberOfStates[3];
+                }
+                //* E -> QE
+                else {
+                    m_nodes[index].state = "QE";
+                    --m_numberOfStates[1];
+                    ++m_numberOfStates[6];
                     m_nodes[index].quarantineTime = 0.0;
                     m_quarantineIndex.emplace(index);
                     m_isolateNode(index);
                 }
-                //* R -> R
+            }
+            //* E -> E
+            break;
+        }
+        //* A process
+        case 2: {
+            if (prob <= transitionProb) {
+                const double p = m_probabilityDistribution(m_randomEngine);
+                //* A -> R
+                if (p * transitionRate < m_AR) {
+                    m_nodes[index].state = "R";
+                    --m_numberOfStates[2];
+                    ++m_numberOfStates[4];
+                    newReactingIndex.erase(index);
+                }
+                //* A->QA
+                else {
+                    m_nodes[index].state = "QA";
+                    --m_numberOfStates[2];
+                    ++m_numberOfStates[7];
+                    m_isolateNode(index);
+                }
+            }
+            //* A -> A
+            break;
+        }
+        //* I process
+        case 3: {
+            //* I -> QI
+            if (prob <= transitionProb) {
+                m_nodes[index].state = "QI";
+                --m_numberOfStates[3];
+                ++m_numberOfStates[8];
+                m_isolateNode(index);
+            }
+            //* I -> I
+            break;
+        }
+        //* R process
+        case 4: {
+            //* R -> QR
+            if (prob <= transitionProb) {
+                m_nodes[index].state = "QR";
+                --m_numberOfStates[4];
+                ++m_numberOfStates[9];
+                m_nodes[index].quarantineTime = 0.0;
+                m_quarantineIndex.emplace(index);
+                m_isolateNode(index);
+            }
+            //* R -> R
+            newReactingIndex.erase(index);
+            break;
+        }
+        //* QE process
+        case 6: {
+            if (prob <= transitionProb) {
+                const double p = m_probabilityDistribution(m_randomEngine);
+                //* QE -> QA
+                if (p * transitionRate < m_EA) {
+                    m_nodes[index].state = "QA";
+                    --m_numberOfStates[6];
+                    ++m_numberOfStates[7];
+                }
+                //* QE -> QI
+                else {
+                    m_nodes[index].state = "QI";
+                    --m_numberOfStates[6];
+                    ++m_numberOfStates[8];
+                }
+            }
+            //* QE -> QE
+            break;
+        }
+        //* QA process
+        case 7: {
+            //* QA -> CR
+            if (prob <= transitionProb) {
+                m_nodes[index].state = "CR";
+                --m_numberOfStates[7];
+                ++m_numberOfStates[10];
                 newReactingIndex.erase(index);
-                break;
             }
-            //* QE process
-            case 6: {
-                if (prob <= transitionProb) {
-                    const double p = m_probabilityDistribution(m_randomEngine);
-                    //* QE -> QA
-                    if (p * transitionRate < m_EA) {
-                        m_nodes[index].state = "QA";
-                        --m_numberOfStates[6];
-                        ++m_numberOfStates[7];
-                    }
-                    //* QE -> QI
-                    else {
-                        m_nodes[index].state = "QI";
-                        --m_numberOfStates[6];
-                        ++m_numberOfStates[8];
-                    }
-                }
-                //* QE -> QE
-                break;
+            //* QA -> QA
+            break;
+        }
+        //* QI process
+        case 8: {
+            //* QI -> CR
+            if (prob <= transitionProb) {
+                m_nodes[index].state = "CR";
+                --m_numberOfStates[8];
+                ++m_numberOfStates[10];
+                newReactingIndex.erase(index);
             }
-            //* QA process
-            case 7: {
-                //* QA -> CR
-                if (prob <= transitionProb) {
-                    m_nodes[index].state = "CR";
-                    --m_numberOfStates[7];
-                    ++m_numberOfStates[10];
-                    newReactingIndex.erase(index);
-                }
-                //* QA -> QA
-                break;
-            }
-            //* QI process
-            case 8: {
-                //* QI -> CR
-                if (prob <= transitionProb) {
-                    m_nodes[index].state = "CR";
-                    --m_numberOfStates[8];
-                    ++m_numberOfStates[10];
-                    newReactingIndex.erase(index);
-                }
-                //* QI -> QI
-                break;
-            }
-            //* QS, QR, CR process
-            default: {
-                break;
-            }
+            //* QI -> QI
+            break;
+        }
+        //* QS, QR, CR process
+        default: {
+            break;
+        }
         }
     }
     m_reactingIndex = newReactingIndex;
@@ -535,7 +535,7 @@ void KM_Rt::save(const std::string& t_file) const {
                 remainedNodesIndex.erase(index);
             }
         }
-        if (date == 0){
+        if (date == 0) {
             num = m_seedSize;
         }
         reproduction = num > 0 ? reproduction / num : 0.0;

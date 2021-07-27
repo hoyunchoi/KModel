@@ -43,7 +43,8 @@ int main(int argc, char* argv[]) {
     //* Read real data
     std::vector<unsigned> realConfirmed;
     CSV::read("../data/COVID/realData/confirmed_209.txt", realConfirmed);
-    const unsigned maxDate = realConfirmed.size();
+    // const unsigned maxDate = realConfirmed.size();
+    const unsigned maxDate = 420;
 
     //* Generate K-Model with reproduction number and path for data
     KM_Rt model(network, rates, randomEngine);
