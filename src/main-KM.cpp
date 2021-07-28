@@ -3,16 +3,29 @@
 #include <random>  //random_device()
 #include <string>
 
-#include "../library/Networks.hpp"
-#include "../library/stringFormat.hpp"
-#include "../library/linearAlgebra.hpp"
+#include "stringFormat.hpp"
 
-#include "KM_Rt.hpp"
+#include "KM.hpp"
 #include "fileName.hpp"
 
 int main(int argc, char* argv[]) {
+    /*
+        Input parameters
+        unsigned networkSize = std::stoul(argv[1]);
+        unsigned meanDegree = std::stoul(argv[2]);
+        double S_E = std::stod(argv[3]);
+        double E_AI = std::stod(argv[4]);
+        double pA = std::stod(argv[5]);
+        double I_QI = std::stod(argv[6]);
+        double A_R = std::stod(argv[7]);
+        double QI_CR = std::stod(argv[8]);
+        double X_QX = std::stod(argv[9]);
+        double tau = std::stod(argv[10]);
+        int coreNum = std::stoi(argv[11]);
+    */
     //* Base directory data will be saved
-    const std::string dataDirectory = "../data/KM_Rt/";
+    using namespace KM;
+    const std::string dataDirectory = "../data/KM/";
 
     //* Random variables
     const int coreNum = std::stoi(argv[11]);
@@ -43,11 +56,10 @@ int main(int argc, char* argv[]) {
     //* Read real data
     std::vector<unsigned> realConfirmed;
     CSV::read("../data/COVID/realData/confirmed_209.txt", realConfirmed);
-    // const unsigned maxDate = realConfirmed.size();
-    const unsigned maxDate = 400;
+    const unsigned maxDate = realConfirmed.size();
 
-    //* Generate K-Model with reproduction number and path for data
-    KM_Rt model(network, rates, randomEngine);
+    //* Generate K-Model and path for data
+    Simulator model(network, rates, randomEngine);
     const std::string networkDirectory = networkName(networkType, networkSize, meanDegree);
     const std::string rateFileName = rateName(rates, randomEngineSeed);
     CSV::generateDirectory(dataDirectory + networkDirectory);
@@ -58,19 +70,18 @@ int main(int argc, char* argv[]) {
     const bool finished = model.sync_run(deltaT, maxDate);
     if (finished){
         std::cout << "Successfully finished.\n";
-        // std::ofstream energyFile("energyList.txt", std::ios_base::app);
-        // energyFile << networkDirectory << rateFileName << ": " << model.getEnergy(realConfirmed) << "\n";
+        std::ofstream energyFile("energyList.txt", std::ios_base::app);
+        energyFile << networkDirectory << rateFileName << ": " << model.getEnergy(realConfirmed) << "\n";
         model.save(dataDirectory + networkDirectory + rateFileName);
     }
     else{
         std::cout << "Simulated finished before reaching current time.\n";
-        model.save(dataDirectory + networkDirectory + rateFileName);
-
     }
     //*----------------------------------------------------------------------------------
     std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
     std::ofstream timeLog("time.log", std::ios_base::app);
-    timeLog << "KM_Rt->" << networkDirectory << rateFileName << ": " << sec.count() << " second\n";
+    timeLog << "KM->" << networkDirectory << rateFileName << ": " << sec.count() << " second \n";
 
     return 0;
 }
+

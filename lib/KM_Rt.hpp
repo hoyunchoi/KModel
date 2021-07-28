@@ -7,16 +7,27 @@
 #include <string>
 #include <vector>
 
-#include "../library/Epidemics.hpp"
-#include "../library/Networks.hpp"
-#include "../library/pcg_random.hpp"
-#include "../library/stringFormat.hpp"
+#include "Epidemics.hpp"
+#include "Networks.hpp"
+#include "pcg_random.hpp"
+#include "stringFormat.hpp"
 
 /*
     R(t) : Number of second infection from node who was infected (became E) at time [t, t+1)
 */
+namespace COVID {
 
-const std::map<std::string, int> stateToInt = {{"S", 0}, {"E", 1}, {"A", 2}, {"I", 3}, {"R", 4}, {"QS", 5}, {"QE", 6}, {"QA", 7}, {"QI", 8}, {"QR", 9}, {"CR", 10}};
+const std::map<std::string, int> stateToInt = {{"S", 0},
+                                               {"E", 1},
+                                               {"A", 2},
+                                               {"I", 3},
+                                               {"R", 4},
+                                               {"QS", 5},
+                                               {"QE", 6},
+                                               {"QA", 7},
+                                               {"QI", 8},
+                                               {"QR", 9},
+                                               {"CR", 10}};
 
 struct KNode_Rt : public Node_Epidemic<unsigned> {
     //* Member variables
@@ -564,3 +575,5 @@ const double KM_Rt::getEnergy(const std::vector<unsigned>& t_realConfirmed) cons
     RMSE = std::sqrt(RMSE / (double)maxDate);
     return RMSE;
 }
+
+} // namespace KM

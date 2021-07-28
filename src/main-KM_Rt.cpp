@@ -3,28 +3,17 @@
 #include <random>  //random_device()
 #include <string>
 
-#include "../library/stringFormat.hpp"
+#include "Networks.hpp"
+#include "stringFormat.hpp"
+#include "linearAlgebra.hpp"
 
-#include "KM.hpp"
+#include "KM_Rt.hpp"
 #include "fileName.hpp"
 
 int main(int argc, char* argv[]) {
-    /*
-        Input parameters
-        unsigned networkSize = std::stoul(argv[1]);
-        unsigned meanDegree = std::stoul(argv[2]);
-        double S_E = std::stod(argv[3]);
-        double E_AI = std::stod(argv[4]);
-        double pA = std::stod(argv[5]);
-        double I_QI = std::stod(argv[6]);
-        double A_R = std::stod(argv[7]);
-        double QI_CR = std::stod(argv[8]);
-        double X_QX = std::stod(argv[9]);
-        double tau = std::stod(argv[10]);
-        int coreNum = std::stoi(argv[11]);
-    */
     //* Base directory data will be saved
-    const std::string dataDirectory = "../data/KM/";
+    using namespace COVID;
+    const std::string dataDirectory = "KM_Rt_data/";
 
     //* Random variables
     const int coreNum = std::stoi(argv[11]);
@@ -41,24 +30,25 @@ int main(int argc, char* argv[]) {
     // const Network network = SF::generate(network, linkSize, degreeExponent, randomEngine);
 
     //* K-Model variables
-    std::vector<double> rates(8, 0.0);  //* S_E, E_AI, pA, I_QI, A_R, QI_CR, X_QX, tau
-    rates[0] = std::stod(argv[3]);
-    rates[1] = std::stod(argv[4]);
-    rates[2] = std::stod(argv[5]);
-    rates[3] = std::stod(argv[6]);
-    rates[4] = std::stod(argv[7]);
-    rates[5] = std::stod(argv[8]);
-    rates[6] = std::stod(argv[9]);
-    rates[7] = std::stod(argv[10]);
+    std::vector<double> rates(8, 0.0);
+    rates[0] = std::stod(argv[3]);  // S_E
+    rates[1] = std::stod(argv[4]);  // E_AI
+    rates[2] = std::stod(argv[5]);  // pA
+    rates[3] = std::stod(argv[6]);  // I_QI
+    rates[4] = std::stod(argv[7]);  // A_R
+    rates[5] = std::stod(argv[8]);  // QI_CR
+    rates[6] = std::stod(argv[9]);  // X_QX
+    rates[7] = std::stod(argv[10]); // tau
     const double deltaT = 1e-1;
 
     //* Read real data
     std::vector<unsigned> realConfirmed;
-    CSV::read("../data/COVID/realData/confirmed_209.txt", realConfirmed);
-    const unsigned maxDate = realConfirmed.size();
+    CSV::read("realData/confirmed_209.txt", realConfirmed);
+    // const unsigned maxDate = realConfirmed.size();
+    const unsigned maxDate = 400;
 
-    //* Generate K-Model and path for data
-    KM model(network, rates, randomEngine);
+    //* Generate K-Model with reproduction number and path for data
+    KM_Rt model(network, rates, randomEngine);
     const std::string networkDirectory = networkName(networkType, networkSize, meanDegree);
     const std::string rateFileName = rateName(rates, randomEngineSeed);
     CSV::generateDirectory(dataDirectory + networkDirectory);
@@ -69,18 +59,19 @@ int main(int argc, char* argv[]) {
     const bool finished = model.sync_run(deltaT, maxDate);
     if (finished){
         std::cout << "Successfully finished.\n";
-        std::ofstream energyFile("energyList.txt", std::ios_base::app);
-        energyFile << networkDirectory << rateFileName << ": " << model.getEnergy(realConfirmed) << "\n";
+        // std::ofstream energyFile("energyList.txt", std::ios_base::app);
+        // energyFile << networkDirectory << rateFileName << ": " << model.getEnergy(realConfirmed) << "\n";
         model.save(dataDirectory + networkDirectory + rateFileName);
     }
     else{
         std::cout << "Simulated finished before reaching current time.\n";
+        model.save(dataDirectory + networkDirectory + rateFileName);
+
     }
     //*----------------------------------------------------------------------------------
     std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
     std::ofstream timeLog("time.log", std::ios_base::app);
-    timeLog << "KM->" << networkDirectory << rateFileName << ": " << sec.count() << " second \n";
+    timeLog << "KM_Rt->" << networkDirectory << rateFileName << ": " << sec.count() << " second\n";
 
     return 0;
 }
-

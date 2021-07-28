@@ -1,5 +1,10 @@
 #! /bin/bash
 
+srcDir=src
+libDir=lib
+binDir=bin
+common=../library
+
 # Network input
 networkSize=$1
 meanDegree=10
@@ -19,8 +24,24 @@ coreNum=$4
 
 name=N${networkSize}M${meanDegree}SE${SE}XQX${XQX}C${coreNum}
 
-g++ -O3 -march=native -flto -std=c++17 -o bin/${name}.out main-KM_Rt.cpp
-./bin/${name}.out ${networkSize} ${meanDegree} ${SE} ${E_AI} ${pA} ${IQI} ${AR} ${QICR} ${XQX} ${tau} ${coreNum}
-rm bin/${name}.out
+function debugBuild {
+	g++ -std=c++17 -Wall -g -fsanitize=address\
+        -I ${common} -I ${libDir}\
+        -o ${binDir}/${name}\
+	    ${srcDir}/main-KM_Rt.cpp
+}
 
+function build {
+	g++ -std=c++17 -O3 -flto -march=native\
+        -I ${common} -I ${libDir}\
+        -o ${binDir}/${name} \
+		${srcDir}/main-KM_Rt.cpp
+}
 
+#* Compile the source files
+# build
+debugBuild
+
+#* Run
+./${binDir}/${name} ${networkSize} ${meanDegree} ${SE} ${E_AI} ${pA} ${IQI} ${AR} ${QICR} ${XQX} ${tau} ${coreNum}
+rm ${binDir}/${name}

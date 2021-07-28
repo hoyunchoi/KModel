@@ -23,7 +23,26 @@ coreNum=$6
 
 name=N${networkSize}M${meanDegree}SE${SE}XQX${XQX}T${T}E${E}C${coreNum}
 
-g++ -O3 -march=native -flto -std=c++17 -o ./bin/${name}.out main-SA_KM.cpp
+function debugBuild {
+	g++ -std=c++17 -Wall -g -fsanitize=address\
+        -I ${common} -I ${libDir}\
+        -o ${binDir}/${name}\
+	    ${srcDir}/main-SA_KM.cpp
+}
+
+function build {
+	g++ -std=c++17 -O3 -flto -march=native\
+        -I ${common} -I ${libDir}\
+        -o ${binDir}/${name}\
+		${srcDir}/main-SA_KM.cpp
+}
+
+
+#* Compile the source files
+# build
+debugBuild
+
+#* Run
 ./bin/${name}.out ${networkSize} ${meanDegree} ${SE} ${E_AI} ${pA} ${IQI} ${AR} ${QICR} ${XQX} ${tau} ${T} ${E}
 rm bin/${name}.out
 
