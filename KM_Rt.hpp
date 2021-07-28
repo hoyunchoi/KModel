@@ -499,6 +499,7 @@ const bool KM_Rt::sync_run(const double& t_deltaT, const unsigned& t_maxDate) {
         m_syncUpdate(t_deltaT);
         if (m_reactingIndex.empty()) {
             m_data.emplace_back(m_numberOfStates);
+            std::cout << "Epidemic finished at time " << m_nextDate << "\n";
             return false;
         }
     }

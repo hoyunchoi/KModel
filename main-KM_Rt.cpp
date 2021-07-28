@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
     std::vector<unsigned> realConfirmed;
     CSV::read("../data/COVID/realData/confirmed_209.txt", realConfirmed);
     // const unsigned maxDate = realConfirmed.size();
-    const unsigned maxDate = 420;
+    const unsigned maxDate = 400;
 
     //* Generate K-Model with reproduction number and path for data
     KM_Rt model(network, rates, randomEngine);
@@ -58,12 +58,14 @@ int main(int argc, char* argv[]) {
     const bool finished = model.sync_run(deltaT, maxDate);
     if (finished){
         std::cout << "Successfully finished.\n";
-        std::ofstream energyFile("energyList.txt", std::ios_base::app);
-        energyFile << networkDirectory << rateFileName << ": " << model.getEnergy(realConfirmed) << "\n";
+        // std::ofstream energyFile("energyList.txt", std::ios_base::app);
+        // energyFile << networkDirectory << rateFileName << ": " << model.getEnergy(realConfirmed) << "\n";
         model.save(dataDirectory + networkDirectory + rateFileName);
     }
     else{
         std::cout << "Simulated finished before reaching current time.\n";
+        model.save(dataDirectory + networkDirectory + rateFileName);
+
     }
     //*----------------------------------------------------------------------------------
     std::chrono::duration<double> sec = std::chrono::system_clock::now() - start;
